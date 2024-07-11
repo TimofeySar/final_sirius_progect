@@ -3,7 +3,7 @@ from telebot import types
 from telebot.types import InlineKeyboardButton, InlineKeyboardMarkup
 import random
 
-TOKEN = '7383941068:AAELJkcVfnKOj8voO5BafNjvfcQLnF-BWvk'
+TOKEN = ''
 bot = telebot.TeleBot(TOKEN)
 
 games = {}

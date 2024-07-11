@@ -3,7 +3,7 @@ from telebot.types import InlineKeyboardButton, InlineKeyboardMarkup
 from telebot.async_telebot import AsyncTeleBot
 import random
 
-TOKEN = '7383941068:AAELJkcVfnKOj8voO5BafNjvfcQLnF-BWvk'
+TOKEN = ''
 bot = AsyncTeleBot("")
 
 # Глобальный словарь для хранения сессий пользователей

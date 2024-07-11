@@ -2,7 +2,7 @@ import telebot, random
 from telebot.async_telebot import AsyncTeleBot
 
 from telebot import types
-token = "7430359508:AAEEsBcEc_uoH7pRL3LeGFEzYjPkxOFMyHQ"
+token = ""
 bot = telebot.TeleBot(token, parse_mode=None)
 global stait
 global games

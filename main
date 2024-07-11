@@ -17,7 +17,11 @@ def start(message):
     bot.send_message(message.chat.id, """Это бот с играми, чтобы вернуться на страницу выбора игр, пропишите /start \n
     сапер: /miner \n
     крестики нолики: /crestiki\n
-    21 : /twenty_one""")
+    21 : /twenty_one\n
+    кликер : /cliker \n
+    Камен - ножницы - бумага: /zuefa\n
+    бродилка: /going\n
+    викторина: /questions""")
 
 
 @bot.message_handler(commands=['crestiki'])
@@ -100,7 +104,7 @@ def miner(message):
     def create_empty_board(size=8):
         return [[' ' for _ in range(size)] for _ in range(size)]
 
-    def place_ships(board, ship_count=15):
+    def place_ships(board, ship_count=10):
         size = len(board)
         placed_ships = 0
         while placed_ships < ship_count:
@@ -210,11 +214,11 @@ def miner(message):
                 bot.delete_message(chat_id, message.message_id)
                 bot.delete_message(chat_id, session['flag_message_id'])
                 game_message = bot.send_message(chat_id, 'Флаг успешно поставлен', reply_markup=new_board)
-                bot.delete_message(chat_id, game_message.message_id - 1)
+                bot.delete_message(chat_id, game_message.message_id - 3)
             else:
                 bot.send_message(chat_id, "Неверные координаты. Введите числа в допустимом диапазоне.")
             session['hits_count'] += 1
-            if session['hits_count'] == 15:
+            if session['hits_count'] == 10:
                 session['game_active'] = False
                 if check_win(session['otvety'], session['board']):
                     bot.send_message(chat_id, "Поздравляю, вы выиграли! Чтобы начать новую игру, введите /sapper.")
@@ -366,6 +370,392 @@ def black_jack(message):
                 bot.send_message(chat_id, "Ничья!")
 
             del games[chat_id]
+
+@bot.message_handler(commands=['cliker'])
+def cliker(message):
+    bot.send_message(message.chat.id, 'Что бы начать введите /click')
+
+    clicker_clients={}
+    mycommands=[]
+    mycommands.append("Купить завод")
+    mycommands.append("Добыть нефть")
+    @bot.message_handler(commands=['click'])
+    def send_welcome(message):
+        bot.reply_to(message, "Добро пожаловать в Lukoil Simulator bot! Для добычи нефти  напишите '/gamestart'. Если у вас пропали команды, введите /reload.")
+
+
+    @bot.message_handler(commands=['reload'])
+    def button_message(message):
+                markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
+                item1 = types.KeyboardButton("Добыть нефть")
+                item2 = types.KeyboardButton("Купить завод")
+                markup.add(item1,item2)
+                bot.send_message(message.chat.id, "Перезагруженно!", reply_markup=markup)
+
+    @bot.message_handler(commands=['gamestart'])
+    def button_message(message):
+                markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
+                item1 = types.KeyboardButton("Добыть нефть")
+                item2 = types.KeyboardButton("Купить завод")
+                markup.add(item1,item2)
+                bot.send_message(message.chat.id, "Чтобы получить ваш первый заработок нажмите на кнопку 'Добыть нефть'.", reply_markup=markup)
+                clicker_clients[message.chat.id]=clickerclass()
+
+    @bot.message_handler(func=lambda message: message.text in ['Добыть нефть', 'Купить завод'])
+    def clicker_obrabotka(message):
+        if message.text in mycommands:
+            clicker_clients[message.chat.id].message_reply(message)
+
+
+    class clickerclass:
+        factoryamount = 0
+        oilamount = 0
+
+        def __init__(self):
+            self.factoryamount=0
+            self.oilamount=0
+
+        def message_reply(self,message):
+            if message.text == "Купить завод" and self.oilamount >= 200 and self.factoryamount == 0:
+                bot.send_message(message.chat.id, "Вы купили завод за 200 баррелей нефти")
+                self.factoryamount += 1
+                self.oilamount -= 200
+            elif message.text == "Купить завод" and self.oilamount <200:
+                bot.send_message(message.chat.id, "Недостаточное количество баррелей нефти")
+                bot.send_message(message.chat.id, "Вам нужно 200 баррелей нефти до следующего завода")
+            elif message.text == "Добыть нефть" and self.factoryamount == 0:
+                bot.send_message(message.chat.id, "Вы добыли 5 баррелей нефти")
+                self.oilamount += 5
+                buf = "Теперь у вас "
+                buf += str(self.oilamount)
+                buf += " баррелей нефти"
+                bot.send_message(message.chat.id, buf)
+
+            elif message.text == "Добыть нефть" and self.factoryamount == 1:
+                bot.send_message(message.chat.id, "Вы добыли 10 баррелей нефти")
+                self.oilamount += 10
+                buf = "Теперь у вас "
+                buf += str(self.oilamount)
+                buf += " баррелей нефти"
+                bot.send_message(message.chat.id, buf)
+            elif message.text == "Купить завод" and self.oilamount >= 500 and self.factoryamount == 1:
+                bot.send_message(message.chat.id, "Вы купили завод за 500 баррелей нефти")
+                self.factoryamount += 1
+                self.oilamount -= 500
+            elif message.text == "Купить завод" and self.factoryamount == 1:
+                bot.send_message(message.chat.id, "Недостаточное количество баррелей нефти")
+                bot.send_message(message.chat.id, "Вам нужно 500 баррелей нефти до следующего завода")
+
+            elif message.text == "Купить завод" and self.oilamount >= 1000 and self.factoryamount == 2:
+                bot.send_message(message.chat.id, "Вы купили завод за 1000 баррелей нефти")
+                self.factoryamount += 1
+                self.oilamount -= 1400
+            elif message.text == "Купить завод" and self.factoryamount == 2:
+                bot.send_message(message.chat.id, "Недостаточное количество баррелей нефти")
+                bot.send_message(message.chat.id, "Вам нужно 1000 баррелей нефти до следующего завода")
+            elif message.text == "Добыть нефть" and self.factoryamount == 2:
+                bot.send_message(message.chat.id, "Вы добыли 20 баррелей нефти")
+                self.oilamount += 20
+                buf = "Теперь у вас "
+                buf += str(self.oilamount)
+                buf += " баррелей нефти"
+                bot.send_message(message.chat.id, buf)
+
+            elif message.text == "Купить завод" and self.oilamount >= 4000 and self.factoryamount == 3:
+                bot.send_message(message.chat.id, "Вы купили завод за 4000 нефти")
+                self.factoryamount += 1
+                self.oilamount -= 4000
+            elif message.text == "Купить завод" and self.factoryamount == 3:
+                bot.send_message(message.chat.id, "Недостаточное количество баррелей нефти")
+                bot.send_message(message.chat.id, "Вам нужно 4000 баррелей нефти до следующего завода")
+            elif message.text == "Добыть нефть" and self.factoryamount == 3:
+                bot.send_message(message.chat.id, "Вы добыли 50 баррелей нефти")
+                self.oilamount += 50
+                buf = "Теперь у вас "
+                buf += str(self.oilamount)
+                buf += " баррелей нефти"
+                bot.send_message(message.chat.id, buf)
+
+            elif message.text == "Купить завод" and self.oilamount >= 10000 and self.factoryamount == 4:
+                bot.send_message(message.chat.id, "Вы купили завод за 10000 нефти")
+                self.factoryamount += 1
+                self.oilamount -= 10000
+            elif message.text == "Купить завод" and self.factoryamount == 4:
+                bot.send_message(message.chat.id, "Недостаточное количество баррелей нефти")
+                bot.send_message(message.chat.id, "Вам нужно 10000 баррелей нефти до следующего завода")
+            elif message.text == "Добыть нефть" and self.factoryamount == 4:
+                bot.send_message(message.chat.id, "Вы добыли 100 баррелей нефти")
+                self.oilamount += 100
+                buf = "Теперь у вас "
+                buf += str(self.oilamount)
+                buf += " баррелей нефти"
+                bot.send_message(message.chat.id, buf)
+
+            elif message.text == "Купить завод" and self.oilamount >= 20000 and self.factoryamount == 5:
+                bot.send_message(message.chat.id, "Вы купили завод за 20000 нефти")
+                self.factoryamount += 1
+                self.oilamount -= 20000
+            elif message.text == "Купить завод" and self.factoryamount == 5:
+                bot.send_message(message.chat.id, "Недостаточное количество баррелей нефти")
+                bot.send_message(message.chat.id, "Вам нужно 20000 баррелей нефти до следующего завода")
+            elif message.text == "Добыть нефть" and self.factoryamount == 5:
+                bot.send_message(message.chat.id, "Вы добыли 175 баррелей нефти")
+                self.oilamount += 175
+                buf = "Теперь у вас "
+                buf += str(self.oilamount)
+                buf += " баррелей нефти"
+                bot.send_message(message.chat.id, buf)
+
+            elif message.text == "Купить завод" and self.oilamount >= 36000 and self.factoryamount == 6:
+                bot.send_message(message.chat.id, "Вы купили завод за 36000 нефти")
+                self.factoryamount += 1
+                self.oilamount -= 36000
+            elif message.text == "Купить завод" and self.factoryamount == 6:
+                bot.send_message(message.chat.id, "Недостаточное количество баррелей нефти")
+                bot.send_message(message.chat.id, "Вам нужно 36000 баррелей нефти до следующего завода")
+            elif message.text == "Добыть нефть" and self.factoryamount == 6:
+                bot.send_message(message.chat.id, "Вы добыли 300 баррелей нефти")
+                self.oilamount += 300
+                buf = "Теперь у вас "
+                buf += str(self.oilamount)
+                buf += " баррелей нефти"
+                bot.send_message(message.chat.id, buf)
+
+            elif message.text == "Купить завод" and self.oilamount >= 65000 and self.factoryamount == 7:
+                bot.send_message(message.chat.id, "Вы купили завод за 65000 нефти")
+                self.factoryamount += 1
+                self.oilamount -= 65000
+            elif message.text == "Купить завод" and self.factoryamount == 7:
+                bot.send_message(message.chat.id, "Недостаточное количество баррелей нефти")
+                bot.send_message(message.chat.id, "Вам нужно 65000 баррелей нефти до следующего завода")
+            elif message.text == "Добыть нефть" and self.factoryamount == 7:
+                bot.send_message(message.chat.id, "Вы добыли 500 баррелей нефти")
+                self.oilamount += 500
+                buf = "Теперь у вас "
+                buf += str(self.oilamount)
+                buf += " баррелей нефти"
+                bot.send_message(message.chat.id, buf)
+
+            elif message.text == "Купить завод" and self.oilamount >= 150000 and self.factoryamount == 8:
+                bot.send_message(message.chat.id, "Вы купили завод за 150000 нефти")
+                self.factoryamount += 1
+                self.oilamount -= 150000
+            elif message.text == "Купить завод" and self.factoryamount == 8:
+                bot.send_message(message.chat.id, "Недостаточное количество баррелей нефти")
+                bot.send_message(message.chat.id, "Вам нужно 150000 баррелей нефти до следующего завода")
+            elif message.text == "Добыть нефть" and self.factoryamount == 8:
+                bot.send_message(message.chat.id, "Вы добыли 1000 баррелей нефти")
+                self.oilamount += 1000
+                buf = "Теперь у вас "
+                buf += str(self.oilamount)
+                buf += " баррелей нефти"
+                bot.send_message(message.chat.id, buf)
+
+            elif message.text == "Купить завод" and self.oilamount >= 350000 and self.factoryamount == 9:
+                bot.send_message(message.chat.id, "Вы купили завод за 350000 нефти")
+                self.factoryamount += 1
+                self.oilamount -= 350000
+            elif message.text == "Купить завод" and self.factoryamount == 9:
+                bot.send_message(message.chat.id, "Недостаточное количество баррелей нефти")
+                bot.send_message(message.chat.id, "Вам нужно 350000 баррелей нефти до следующего завода")
+            elif message.text == "Добыть нефть" and self.factoryamount == 9:
+                bot.send_message(message.chat.id, "Вы добыли 2000 баррелей нефти")
+                self.oilamount += 2000
+                buf = "Теперь у вас "
+                buf += str(self.oilamount)
+                buf += " баррелей нефти"
+                bot.send_message(message.chat.id, buf)
+
+            elif message.text == "Купить завод" and self.oilamount >= 1000000 and self.factoryamount == 10:
+                bot.send_message(message.chat.id, "Вы купили весь Лукойл за 1000000 нефти!")
+                self.factoryamount += 1
+                self.oilamount -= 1000000
+            elif message.text == "Купить завод" and self.factoryamount == 10:
+                bot.send_message(message.chat.id, "Недостаточное количество баррелей нефти")
+                bot.send_message(message.chat.id, "Вам нужно 1000000 баррелей нефти до покупки Лукойла")
+            elif message.text == "Добыть нефть" and self.factoryamount == 10:
+                bot.send_message(message.chat.id, "Вы добыли 5000 баррелей нефти")
+                self.oilamount += 5000
+                buf = "Теперь у вас "
+                buf += str(self.oilamount)
+                buf += " баррелей нефти"
+                bot.send_message(message.chat.id, buf)
+            elif message.text == "Купить завод" and self.factoryamount == 11 and self.oilamount == 10000000:
+                bot.send_message(message.chat.id, "Поздравляю! Вы достигли настоящего конца! Вы купили все острова Мальдив")
+                self.oilamount -= 10000000
+                self.factoryamount += 1
+            elif message.text == "Добыть нефть" and self.factoryamount == 11:
+                bot.send_message(message.chat.id, "Вы добыли 10000 баррелей нефти")
+                self.oilamount += 10000
+                buf = "Теперь у вас "
+                buf += str(self.oilamount)
+                buf += " баррелей нефти"
+                bot.send_message(message.chat.id, buf)
+            elif message.text == "Добыть нефть" and self.factoryamount == 12:
+                bot.send_message(message.chat.id, "Вы добыли 50000 баррелей нефти")
+                self.oilamount += 50000
+                buf = "Теперь у вас "
+                buf += str(self.oilamount)
+                buf += " баррелей нефти"
+                bot.send_message(message.chat.id, buf)
+            else:
+                print("")
+
+@bot.message_handler(commands=['zuefa'])
+def button_message(message):
+            markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
+            it1 = types.KeyboardButton("📜")
+            it2 = types.KeyboardButton("✂")
+            it3 = types.KeyboardButton("🗿")
+            markup.add(it1)
+            markup.add(it2)
+            markup.add(it3)
+            bot.send_message(message.chat.id,'я кнопки выслал, теперь твоя очередь', reply_markup=markup)
+@bot.message_handler(func=lambda message: message.text in ['📜', '✂', '🗿'])
+def play_game(message):
+    us = message.text
+    bot_choise = random.choice(['🗿','📜','✂'])
+
+    if us == bot_choise:
+        bot.send_message(message.chat.id, f'Чтожжж. Ничья! Вы выбрали {us}, а я выбрал {bot_choise}')
+    elif (us == '🗿' and bot_choise == '✂') or (us == '✂' and bot_choise == '📜') or (us == '📜' and bot_choise == '🗿'):
+        bot.send_message(message.chat.id, f'Поздравляю, вы победили! Вы выбрали {us}, а я выбрал {bot_choise}')
+    else:
+        bot.send_message(message.chat.id, f'Я победил. Вы выбрали {us}, а я выбрал {bot_choise}. Удачи в следующий раз!')
+
+
+maze = [
+    [0, 1, 0, 1, 0],
+    [0, 1, 0, 0, 0],
+    [0, 0, 0, 1, 0],
+    [0, 1, 1, 1, 0],
+    [0, 0, 0, 0, 0]
+]
+#all the player typ shi
+player_position = [0, 0]
+entrance_position = [4, 4]
+def is_valid_move(position):
+    x, y = position
+    if 0 <= x < len(maze) and 0 <= y < len(maze[0]) and maze[x][y] == 0:
+        return True
+    return False
+#player movement
+def move_player(direction):
+    global player_position
+    x, y = player_position
+    if direction == 'up':
+        new_position = [x - 1, y]
+    elif direction == 'down':
+        new_position = [x + 1, y]
+    elif direction == 'left':
+        new_position = [x, y - 1]
+    elif direction == 'right':
+        new_position = [x, y + 1]
+    if is_valid_move(new_position):
+        player_position = new_position
+        return True
+    return False
+#button bs
+def create_navigation_buttons():
+    markup = types.ReplyKeyboardMarkup(row_width=2, resize_keyboard=True)
+    x, y = player_position
+    if is_valid_move([x - 1, y]):
+        btn_up = types.KeyboardButton('up')
+        markup.add(btn_up)
+    if is_valid_move([x + 1, y]):
+        btn_down = types.KeyboardButton('down')
+        markup.add(btn_down)
+    if is_valid_move([x, y - 1]):
+        btn_left = types.KeyboardButton('left')
+        markup.add(btn_left)
+    if is_valid_move([x, y + 1]):
+        btn_right = types.KeyboardButton('right')
+        markup.add(btn_right)
+    return markup
+#this resets the game
+def reset_game():
+    global player_position
+    player_position = [0, 0]
+#welcome stuff
+@bot.message_handler(commands=['going'])
+def send_welcome(message):
+    reset_game()
+    markup = create_navigation_buttons()
+    bot.send_message(message.chat.id, "Welcome to the maze! use the buttons to navigate.", reply_markup=markup)
+    bot.send_message(message.chat.id, f"Your position: {player_position}")
+#response
+@bot.message_handler(func=lambda message: message.text in ['up', 'down', 'left', 'right'])
+def handle_message(message):
+    direction = message.text.lower()
+    if direction in ['up', 'down', 'left', 'right']:
+        if move_player(direction):
+            if player_position == entrance_position:
+                bot.send_message(message.chat.id, "Congrats you have successfully escaped my basement!!")
+                reset_game()
+                bot.send_message(message.chat.id, "The game has been reset now you gotta find your way out again womp womp")
+            markup = create_navigation_buttons()
+            bot.send_message(message.chat.id, f"Moved {direction}. Your current position: {player_position}", reply_markup=markup)
+        else:
+            bot.reply_to(message, "Invalid move. Down bad homie. L")
+    else:
+        bot.reply_to(message, "Bruh use the buttons bozo.")
+
+questions = [
+'Как называется популярная социальная сеть с символом синей птицы?' ,
+'Какое имя у персонажа, известного как "Мальчик, который выжил"?' ,
+'Как называется самая известная видеохостинговая платформа?',
+'Кто исполнитель песни "Bad Guy"?',
+'Мелодию какой песни можно сыграть буквально с помощью руки и стола ?',
+'Человек, который хочет колонизировать Марс',
+'Как называется популярная видеоигра с постройкой и выживанием, где можно играть в режиме "креатив" и "выживание"?',
+'Как называется самая популярная спортивная игра в мире?',
+'Как называется спортивная игра, в которой игроки сталкиваются с использованием длинных палок и мяча?',
+'Как называется тип обуви, c которым играют в хоккей']
+answers = ['Twitter', 'Гарри Поттер.', 'YouTube.', 'Билли Айлиш.', "Beliver.", 'Илон Маск', 'Minecraft.', 'Футбол.', 'Фроллбол.', 'Коньки.']
+clients={}
+@bot.message_handler(commands=['questions'])
+def button_message(message):
+        clients[message.chat.id]=random.choice(range(0,len(questions)))
+        markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
+        itm1 = types.KeyboardButton(answers[0])
+        itm2 = types.KeyboardButton(answers[1])
+        itm3 = types.KeyboardButton(answers[2])
+        itm4 = types.KeyboardButton(answers[3])
+        itm5 = types.KeyboardButton(answers[4])
+        itm6 = types.KeyboardButton(answers[5])
+        itm7 = types.KeyboardButton(answers[6])
+        itm8 = types.KeyboardButton(answers[7])
+        itm9 = types.KeyboardButton(answers[8])
+        itm10 = types.KeyboardButton(answers[9])
+        markup.add(itm1)
+        markup.add(itm2)
+        markup.add(itm3)
+        markup.add(itm4)
+        markup.add(itm5)
+        markup.add(itm6)
+        markup.add(itm7)
+        markup.add(itm8)
+        markup.add(itm9)
+        markup.add(itm10)
+        bot.send_message(message.chat.id,"Привет! Я Виктор. Давай сыграем в Викторину \n", reply_markup=markup)
+        bot.send_message(message.chat.id, questions[clients[message.chat.id]])
+
+@bot.message_handler (func=lambda message: message.text in ['Twitter', 'Гарри Поттер.', 'YouTube.', 'Билли Айлиш.', "Beliver.", 'Илон Маск', 'Minecraft.', 'Футбол.', 'Фроллбол.', 'Коньки.'])
+def send_message(message):
+        if message.text == answers[clients[message.chat.id]]:
+                bot.send_message(message.chat.id, 'Правильно +1')
+        else:
+                bot.send_message(message.chat.id, 'Неправильно')
+        buf=random.choice(range(0, len(questions)))
+        if(clients[message.chat.id]==buf):
+                if(buf==len(questions)-1):
+                        clients[message.chat.id] = buf-1
+                else:
+                        clients[message.chat.id] = buf + 1
+        else:
+                clients[message.chat.id] = buf
+        bot.send_message(message.chat.id, questions[clients[message.chat.id]])
+
 
 
 bot.polling(non_stop=True)

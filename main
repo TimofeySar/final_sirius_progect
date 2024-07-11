@@ -1,0 +1,371 @@
+import telebot
+from telebot import types
+from telebot.types import InlineKeyboardButton, InlineKeyboardMarkup
+import random
+
+TOKEN = '7383941068:AAELJkcVfnKOj8voO5BafNjvfcQLnF-BWvk'
+bot = telebot.TeleBot(TOKEN)
+
+games = {}
+sessions = {}
+
+playerSymbols = ["❌", "🔵"]
+
+
+@bot.message_handler(commands=['start'])
+def start(message):
+    bot.send_message(message.chat.id, """Это бот с играми, чтобы вернуться на страницу выбора игр, пропишите /start \n
+    сапер: /miner \n
+    крестики нолики: /crestiki\n
+    21 : /twenty_one""")
+
+
+@bot.message_handler(commands=['crestiki'])
+def cresti(message):
+    bot.send_message(message.chat.id, 'Что бы начать игру нажмите /noliki')
+
+    @bot.message_handler(commands=['noliki'])
+    def welcome(message):
+        chat_id = message.chat.id
+        clear_game(chat_id)
+        bot.send_message(chat_id, "Игра началась")
+        send_game_board(chat_id)
+
+    def clear_game(chat_id):
+        games[chat_id] = {
+            "gameGround": [" "] * 9,
+            "currentPlayer": 0,
+            "gameIsStart": True
+        }
+
+    def check_winner(gameGround):
+        winning_positions = [
+            (0, 1, 2), (3, 4, 5), (6, 7, 8),
+            (0, 3, 6), (1, 4, 7), (2, 5, 8),
+            (0, 4, 8), (2, 4, 6)
+        ]
+        for pos in winning_positions:
+            if gameGround[pos[0]] == gameGround[pos[1]] == gameGround[pos[2]] and gameGround[pos[0]] != " ":
+                return gameGround[pos[0]]
+        if " " not in gameGround:
+            return "draw"
+        return None
+
+    def send_game_board(chat_id):
+        game = games[chat_id]
+        markup = types.InlineKeyboardMarkup(row_width=3)
+        for i in range(0, 9, 3):
+            markup.row(types.InlineKeyboardButton(game['gameGround'][i], callback_data=f'ttt_{i}'),
+                       types.InlineKeyboardButton(game['gameGround'][i + 1], callback_data=f'ttt_{i + 1}'),
+                       types.InlineKeyboardButton(game['gameGround'][i + 2], callback_data=f'ttt_{i + 2}'))
+        bot.send_message(chat_id, f"Первый ход - {playerSymbols[0]}. Выберите клетку:", reply_markup=markup)
+
+    @bot.callback_query_handler(func=lambda call: call.data.startswith('ttt_'))
+    def callback_inline(call):
+        chat_id = call.message.chat.id
+        game = games[chat_id]
+
+        index = int(call.data.split('_')[1])
+        if game['gameGround'][index] == " ":
+            game['gameGround'][index] = playerSymbols[game['currentPlayer']]
+            game['currentPlayer'] = 1 - game['currentPlayer']
+
+        winner = check_winner(game['gameGround'])
+
+        markup = types.InlineKeyboardMarkup(row_width=3)
+        for i in range(0, 9, 3):
+            markup.row(types.InlineKeyboardButton(game['gameGround'][i], callback_data=f'ttt_{i}'),
+                       types.InlineKeyboardButton(game['gameGround'][i + 1], callback_data=f'ttt_{i + 1}'),
+                       types.InlineKeyboardButton(game['gameGround'][i + 2], callback_data=f'ttt_{i + 2}'))
+
+        bot.edit_message_reply_markup(chat_id=chat_id, message_id=call.message.message_id, reply_markup=markup)
+
+        if winner:
+            clear_game(chat_id)
+            if winner == "draw":
+                bot.send_message(chat_id, "Ничья!")
+            else:
+                bot.send_message(chat_id, f"Победил {winner}!")
+        else:
+            bot.edit_message_text("Выберите клетку", chat_id=chat_id, message_id=call.message.message_id,
+                                  reply_markup=markup)
+
+
+@bot.message_handler(commands=['miner'])
+def miner(message):
+    bot.send_message(message.chat.id, "Чтобы начать новую игру, введите /sapper.")
+
+    sessions = {}
+
+    def create_empty_board(size=8):
+        return [[' ' for _ in range(size)] for _ in range(size)]
+
+    def place_ships(board, ship_count=15):
+        size = len(board)
+        placed_ships = 0
+        while placed_ships < ship_count:
+            row = random.randint(0, size - 1)
+            col = random.randint(0, size - 1)
+            if board[row][col] == ' ':
+                board[row][col] = 'O'
+                placed_ships += 1
+        return board
+
+    def check_win(otvety, board):
+        for row in range(len(board)):
+            for col in range(len(board[row])):
+                if otvety[row][col] == 'O' and board[row][col] != '🚩':
+                    return False
+        return True
+
+    def count_ships_around(row, col, board):
+        count = 0
+        size = len(board)
+        for r in range(max(0, row - 1), min(size, row + 2)):
+            for c in range(max(0, col - 1), min(size, col + 2)):
+                if board[r][c] == 'O' and (r != row or c != col):
+                    count += 1
+        return str(count)
+
+    def create_game_board(board):
+        markup = InlineKeyboardMarkup(row_width=8)
+        buttons = []
+        for row in range(len(board)):
+            for col in range(len(board[row])):
+                text = board[row][col]
+                if text == ' ':
+                    text = f'{row},{col}'
+                elif text == 'x':
+                    text = '💣'
+                elif text == '1':
+                    text = '1️⃣'
+                elif text == '2':
+                    text = '2️⃣'
+                elif text == '3':
+                    text = '3️⃣'
+                elif text == '4':
+                    text = '4️⃣'
+                elif text == '5':
+                    text = '5️⃣'
+                elif text == '6':
+                    text = '6️⃣'
+                elif text == '7':
+                    text = '7️⃣'
+                elif text == '0':
+                    text = '0️⃣'
+                buttons.append(InlineKeyboardButton(text, callback_data=f'sapper_{row},{col}'))
+        markup.row(InlineKeyboardButton("Поставить флаг", callback_data="sapper_flag"))
+
+        for i in range(0, len(buttons), 8):
+            markup.row(*buttons[i:i + 8])
+        return markup
+
+    @bot.message_handler(commands=['sapper'])
+    def start(message):
+        chat_id = message.chat.id
+        try:
+            bot.delete_message(message.chat.id, message.message_id - 1)
+            bot.delete_message(message.chat.id, message.message_id - 2)
+        except:
+            pass
+        board_with_ships = create_empty_board()
+        otvety = place_ships(board_with_ships)
+        session = {
+            'otvety': otvety,
+            'board': create_empty_board(),
+            'hits_count': 0,
+            'game_active': True,
+            'waiting_for_flag_input': False,
+            'flag_message_id': None
+        }
+        sessions[chat_id] = session
+        board_markup = create_game_board(session['board'])
+        bot.send_message(chat_id, "Добро пожаловать в игру 'Сапер'!", reply_markup=board_markup)
+
+    @bot.callback_query_handler(func=lambda call: call.data == 'sapper_flag')
+    def handle_flag_query(call):
+        chat_id = call.message.chat.id
+        session = sessions.get(chat_id)
+        if session and session['game_active']:
+            try:
+                session['waiting_for_flag_input'] = True
+                message = bot.send_message(chat_id,
+                                                 f"Введите координаты клетки для установки флага в формате 'строка,столбец' (например, 1,1):")
+                session['flag_message_id'] = message.message_id
+
+            except Exception as e:
+                print(f"Ошибка при обработке запроса на постановку флага: {e}")
+
+    @bot.message_handler(func=lambda message: sessions.get(message.chat.id, {}).get('waiting_for_flag_input'))
+    def process_flag_input(message):
+        chat_id = message.chat.id
+        session = sessions.get(chat_id)
+        if not session:
+            return
+        try:
+            row, col = map(int, message.text.split(','))
+            if 0 <= row < len(session['board']) and 0 <= col < len(session['board'][0]):
+                session['board'][row][col] = '🚩'
+                new_board = create_game_board(session['board'])
+                bot.delete_message(chat_id, message.message_id)
+                bot.delete_message(chat_id, session['flag_message_id'])
+                game_message = bot.send_message(chat_id, 'Флаг успешно поставлен', reply_markup=new_board)
+                bot.delete_message(chat_id, game_message.message_id - 1)
+            else:
+                bot.send_message(chat_id, "Неверные координаты. Введите числа в допустимом диапазоне.")
+            session['hits_count'] += 1
+            if session['hits_count'] == 15:
+                session['game_active'] = False
+                if check_win(session['otvety'], session['board']):
+                    bot.send_message(chat_id, "Поздравляю, вы выиграли! Чтобы начать новую игру, введите /sapper.")
+                else:
+                    bot.send_message(chat_id,
+                                           "Вы проиграли! Не все флаги стоят на правильных местах. Чтобы начать новую игру, введите /start.")
+            session['waiting_for_flag_input'] = False
+        except ValueError:
+            bot.send_message(chat_id, "Неверный формат координат. Введите числа через запятую (например, 1,1).")
+        except Exception as e:
+            print(f"Ошибка при обработке ввода координат: {e}")
+
+    @bot.callback_query_handler(func=lambda call: call.data.startswith('sapper_'))
+    def handle_query(call):
+        chat_id = call.message.chat.id
+        session = sessions.get(chat_id)
+        if not session or not session['game_active']:
+            return
+        if call.data == 'flag':
+            return
+        if call.data == '🚩':
+            return
+
+        try:
+            row, col = map(int, call.data.split('_')[1].split(','))
+            if session['otvety'][row][col] == 'O':
+                session['board'][row][col] = 'x'
+                session['game_active'] = False
+                bot.send_message(chat_id, "Вы проиграли! Чтобы начать новую игру, введите /sapper.")
+                session['hits_count'] += 1
+                bot.answer_callback_query(call.id, f"вы попали {row},{col}")
+            elif session['otvety'][row][col] == ' ':
+                session['board'][row][col] = count_ships_around(row, col, session['otvety'])
+
+        except:
+            pass
+        new_board = create_game_board(session['board'])
+        bot.edit_message_reply_markup(chat_id, call.message.message_id, reply_markup=new_board)
+
+
+
+@bot.message_handler(commands=['twenty_one'])
+def black_jack(message):
+    bot.send_message(message.chat.id, 'Чтобы начать игру, введите /lets_go')
+    games = {}
+
+    class BlackJack:
+        def __init__(self):
+            self.create_deck()
+            self.hand = []
+            self.dealer_hand = []
+
+        def create_deck(self):
+            self.deck = [2, 3, 4, 5, 6, 7, 8, 9, 10, 10, 10, 10, 11] * 4
+            random.shuffle(self.deck)
+            return self.deck
+
+        def give_hand(self):
+            card = self.deck.pop()
+            self.hand.append(card)
+            return card
+
+        def give_dealer_hand(self):
+            dealer_card = self.deck.pop()
+            self.dealer_hand.append(dealer_card)
+
+        def player_hit(self):
+            return self.give_hand()
+
+        def calc_hand(self, hand):
+            total = sum(hand)
+            aces = hand.count(11)
+            while total > 21 and aces:
+                total -= 10
+                aces -= 1
+            return total
+
+        def start_deal(self):
+            self.hand.clear()
+            self.dealer_hand.clear()
+            self.create_deck()
+            self.give_hand()
+            self.give_dealer_hand()
+            self.give_hand()
+
+        def get_game_state(self):
+            return {
+                'hand': self.hand,
+                'dealer_hand': self.dealer_hand,
+                'total': self.calc_hand(self.hand),
+                'total_dealer': self.calc_hand(self.dealer_hand)
+            }
+
+    @bot.message_handler(commands=['lets_go'])
+    def start_game(message):
+        chat_id = message.chat.id
+        games[chat_id] = BlackJack()
+        games[chat_id].start_deal()
+        state = games[chat_id].get_game_state()
+
+        bot.send_message(chat_id, f"Ваша рука: {state['hand']}, ваш счёт: {state['total']}")
+        bot.send_message(chat_id, f"Видимая карта дилера: {state['dealer_hand'][0]}")
+        game_do(chat_id)
+
+    def game_do(chat_id):
+        markup = types.ReplyKeyboardMarkup(row_width=2, one_time_keyboard=True)
+        itembtn1 = types.KeyboardButton('Hit')
+        itembtn2 = types.KeyboardButton('Stand')
+        markup.add(itembtn1, itembtn2)
+        bot.send_message(chat_id, "Выберите действие:", reply_markup=markup)
+
+    @bot.message_handler(func=lambda message: message.text in ['Hit', 'Stand'])
+    def handle_doing(message):
+        chat_id = message.chat.id
+        if chat_id not in games:
+            bot.send_message(chat_id, "Сначала начните игру с команды /lets_go")
+            return
+
+        game = games[chat_id]
+        state = game.get_game_state()
+
+        if message.text == 'Hit':
+            card = game.player_hit()
+            state = game.get_game_state()
+
+            bot.send_message(chat_id, f"Вы взяли карту {card}! Ваша рука: {state['hand']}, счёт: {state['total']}")
+
+            if state['total'] > 21:
+                bot.send_message(chat_id, "Вы проиграли! Перебор. Игра окончена.")
+                del games[chat_id]
+            else:
+                game_do(chat_id)
+
+        elif message.text == 'Stand':
+            while game.calc_hand(game.dealer_hand) < 17:
+                game.give_dealer_hand()
+                state = game.get_game_state()
+
+            bot.send_message(chat_id, f"Карты дилера: {state['dealer_hand']}, сумма очков: {state['total_dealer']}")
+
+            player_total = state['total']
+            dealer_total = state['total_dealer']
+
+            if dealer_total > 21 or player_total > dealer_total:
+                bot.send_message(chat_id, "Вы выиграли!")
+            elif player_total < dealer_total:
+                bot.send_message(chat_id, "Дилер выиграл!")
+            else:
+                bot.send_message(chat_id, "Ничья!")
+
+            del games[chat_id]
+
+
+bot.polling(non_stop=True)

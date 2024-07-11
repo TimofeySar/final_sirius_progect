@@ -4,7 +4,7 @@ from telebot.async_telebot import AsyncTeleBot
 import random
 
 TOKEN = '7383941068:AAELJkcVfnKOj8voO5BafNjvfcQLnF-BWvk'
-bot = AsyncTeleBot("7383941068:AAELJkcVfnKOj8voO5BafNjvfcQLnF-BWvk")
+bot = AsyncTeleBot("")
 
 # Глобальный словарь для хранения сессий пользователей
 sessions = {}

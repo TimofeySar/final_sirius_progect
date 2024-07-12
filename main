@@ -3,7 +3,7 @@ from telebot import types
 from telebot.types import InlineKeyboardButton, InlineKeyboardMarkup
 import random
 
-TOKEN = '7383941068:AAELJkcVfnKOj8voO5BafNjvfcQLnF-BWvk'
+TOKEN = ''
 bot = telebot.TeleBot(TOKEN)
 
 games = {}
@@ -14,6 +14,8 @@ playerSymbols = ["❌", "🔵"]
 try:
     @bot.message_handler(commands=['start'])
     def start(message):
+        print(message.from_user.first_name)
+        print(message.from_user.username)
         markup = types.ReplyKeyboardRemove()
         bot.send_message(message.chat.id, """Это бот с играми, чтобы вернуться на страницу выбора игр, пропишите /start \n
         сапер: /miner \n
